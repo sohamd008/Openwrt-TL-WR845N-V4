@@ -4,7 +4,6 @@ on:
   workflow_dispatch:
 
 env:
-  # Using 21.02.7 where we KNOW the profile exists and the official kernel is small
   IMAGE_BUILDER_URL: https://downloads.openwrt.org/releases/21.02.7/targets/ramips/mt76x8/openwrt-imagebuilder-21.02.7-ramips-mt76x8.Linux-x86_64.tar.xz
 
 jobs:
@@ -28,11 +27,14 @@ jobs:
       - name: The Master Hacks
         run: |
           cd ib
-          # 1. Unlock the 4MB profile restriction to 8MB so LuCI fits without the "images are too big" error.
-          sed -i 's/tplink-4mlzma/tplink-8mlzma/g' target/linux/ramips/image/mt76x8.mk
+          # 1. Expand the image size limit from 4MB to 8MB (7936k)
+          sed -i '/define Device\/tplink_tl-wr841n-v14/,/endef/ s/IMAGE_SIZE := .*/IMAGE_SIZE := 7936k/' target/linux/ramips/image/mt76x8.mk
           
-          # 2. Spoof the Hardware ID so the WR845N bootloader accepts it via TFTP.
-          sed -i 's/0x08410014/0x08450004/g' target/linux/ramips/image/mt76x8.mk
+          # 2. Change the flash layout from 4M to 8M
+          sed -i '/define Device\/tplink_tl-wr841n-v14/,/endef/ s/4Mmtk/8Mmtk/' target/linux/ramips/image/mt76x8.mk
+          
+          # 3. Spoof the Hardware ID to WR845N v4
+          sed -i '/define Device\/tplink_tl-wr841n-v14/,/endef/ s/0x08410014/0x08450004/' target/linux/ramips/image/mt76x8.mk
 
       - name: Build Firmware
         run: |
