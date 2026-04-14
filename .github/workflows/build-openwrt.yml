@@ -1,14 +1,15 @@
-name: OpenWrt-WR845N-V4-Spoof
+name: OpenWrt-19.07-Safe-Spoof
 
 on:
   workflow_dispatch:
 
 env:
-  IMAGE_BUILDER_URL: https://downloads.openwrt.org/releases/23.05.3/targets/ramips/mt76x8/openwrt-imagebuilder-23.05.3-ramips-mt76x8.Linux-x86_64.tar.xz
+  # Using the older, ultra-light 19.07.10 Image Builder
+  IMAGE_BUILDER_URL: https://downloads.openwrt.org/releases/19.07.10/targets/ramips/mt76x8/openwrt-imagebuilder-19.07.10-ramips-mt76x8.Linux-x86_64.tar.xz
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-20.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,34 +25,22 @@ jobs:
           mkdir ib
           tar -xJf *.tar.xz -C ib --strip-components=1
 
-      - name: Spoof Hardware ID
+      - name: The SAFE Spoof
         run: |
           cd ib
-          # This is the magic line. It tricks the builder into making WR845N firmware 
-          # by swapping the Hardware ID inside the WR840N profile before compiling.
-          sed -i 's/0x08400004/0x08450004/g' target/linux/ramips/image/mt76x8.mk
-
-      - name: Customize IP and Settings
-        run: |
-          cd ib
-          mkdir -p files/etc/config
-          echo "config interface 'lan'
-            option device 'br-lan'
-            option proto 'static'
-            option ipaddr '192.168.5.1'
-            option netmask '255.255.255.0'
-            option ip6assign '60'" > files/etc/config/network
+          # This swaps the WR841N v14 ID to the WR845N v4 ID.
+          # Because the RAM matches perfectly, this will NOT bootloop.
+          sed -i 's/0x08410014/0x08450004/g' target/linux/ramips/image/mt76x8.mk
 
       - name: Build Firmware
         run: |
           cd ib
-          # We build the WR840N profile, but the internal header will now be WR845N
-          make image PROFILE="tplink_tl-wr840n-v4" \
-          PACKAGES="luci-base luci-mod-admin-full luci-theme-bootstrap uhttpd uhttpd-mod-ubus libiwinfo-lua luci-app-firewall -ppp -ppp-mod-pppoe -ip6tables -odhcp6c" \
-          FILES="files"
+          # Using the 19.07 profile name and keeping it lean
+          make image PROFILE="tl-wr841n-v14" \
+          PACKAGES="luci -ppp -ppp-mod-pppoe -ip6tables -odhcp6c -kmod-ipv6 -kmod-ip6tables"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: WR845N-V4-SPOOFED-FIRMWARE
-          path: ib/bin/targets/ramips/mt76x8/*tftp-recovery.bin
+          name: SAFE-WR845N-19.07-FIRMWARE
+          path: ib/bin/targets/ramips/mt76x8/*factory.bin
