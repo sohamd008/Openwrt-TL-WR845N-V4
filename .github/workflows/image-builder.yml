@@ -1,0 +1,50 @@
+name: OpenWrt-Image-Builder
+
+on:
+  workflow_dispatch:
+
+env:
+  # This points to Lean's MT76x8 Image Builder source
+  IMAGE_BUILDER_URL: https://downloads.openwrt.org/releases/23.05.3/targets/ramips/mt76x8/openwrt-imagebuilder-23.05.3-ramips-mt76x8.Linux-x86_64.tar.xz
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare Environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libncurses5-dev libncursesw5-dev zlib1g-dev gawk git gettext libssl-dev xsltproc wget unzip python3
+
+      - name: Download & Extract Image Builder
+        run: |
+          wget $IMAGE_BUILDER_URL
+          tar -xJf *.tar.xz
+          mv openwrt-imagebuilder-* ib
+
+      - name: Customize IP and Settings
+        run: |
+          cd ib
+          mkdir -p files/etc/config
+          # This sets your 192.168.5.1 IP directly
+          echo "config interface 'lan'
+            option device 'br-lan'
+            option proto 'static'
+            option ipaddr '192.168.5.1'
+            option netmask '255.255.255.0'
+            option ip6assign '60'" > files/etc/config/network
+
+      - name: Build Firmware
+        run: |
+          cd ib
+          # We define exactly what we want. The "-" means "Remove this package"
+          make image PROFILE="tplink_tl-wr845n-v4" PACKAGES="luci luci-theme-bootstrap -ppp -ppp-mod-pppoe -ip6tables -odhcp6c -libiwinfo-lua" FILES="files"
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WR845N-OpenWrt-Firmware
+          path: ib/bin/targets/ramips/mt76x8/*.bin
