@@ -1,11 +1,11 @@
-name: OpenWrt-19.07-Safe-Spoof
+name: OpenWrt-21.02-Master-Hack
 
 on:
   workflow_dispatch:
 
 env:
-  # Using the older, ultra-light 19.07.10 Image Builder
-  IMAGE_BUILDER_URL: https://downloads.openwrt.org/releases/19.07.10/targets/ramips/mt76x8/openwrt-imagebuilder-19.07.10-ramips-mt76x8.Linux-x86_64.tar.xz
+  # Using 21.02.7 where we KNOW the profile exists and the official kernel is small
+  IMAGE_BUILDER_URL: https://downloads.openwrt.org/releases/21.02.7/targets/ramips/mt76x8/openwrt-imagebuilder-21.02.7-ramips-mt76x8.Linux-x86_64.tar.xz
 
 jobs:
   build:
@@ -25,22 +25,23 @@ jobs:
           mkdir ib
           tar -xJf *.tar.xz -C ib --strip-components=1
 
-      - name: The SAFE Spoof
+      - name: The Master Hacks
         run: |
           cd ib
-          # This swaps the WR841N v14 ID to the WR845N v4 ID.
-          # Because the RAM matches perfectly, this will NOT bootloop.
+          # 1. Unlock the 4MB profile restriction to 8MB so LuCI fits without the "images are too big" error.
+          sed -i 's/tplink-4mlzma/tplink-8mlzma/g' target/linux/ramips/image/mt76x8.mk
+          
+          # 2. Spoof the Hardware ID so the WR845N bootloader accepts it via TFTP.
           sed -i 's/0x08410014/0x08450004/g' target/linux/ramips/image/mt76x8.mk
 
       - name: Build Firmware
         run: |
           cd ib
-          # Using the 19.07 profile name and keeping it lean
           make image PROFILE="tplink_tl-wr841n-v14" \
           PACKAGES="luci -ppp -ppp-mod-pppoe -ip6tables -odhcp6c -kmod-ipv6 -kmod-ip6tables"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SAFE-WR845N-19.07-FIRMWARE
-          path: ib/bin/targets/ramips/mt76x8/*factory.bin
+          name: WR845N-V4-ULTIMATE-FIRMWARE
+          path: ib/bin/targets/ramips/mt76x8/*.bin
