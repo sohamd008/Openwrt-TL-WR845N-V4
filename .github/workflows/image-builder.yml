@@ -39,6 +39,11 @@ jobs:
             option netmask '255.255.255.0'
             option ip6assign '60'" > files/etc/config/network
 
+      - name: List All Profiles
+        run: |
+          cd ib
+          make info | grep "tplink"
+          
       - name: Build Firmware
         run: |
           cd ib
