@@ -1,15 +1,15 @@
-name: OpenWrt-Image-Builder
+name: OpenWrt-21.02-Image-Builder
 
 on:
   workflow_dispatch:
 
 env:
-  # This points to Lean's MT76x8 Image Builder source
-  IMAGE_BUILDER_URL: https://downloads.openwrt.org/releases/23.05.3/targets/ramips/mt76x8/openwrt-imagebuilder-23.05.3-ramips-mt76x8.Linux-x86_64.tar.xz
+  # This is the 21.02.7 'Old Stable' Image Builder
+  IMAGE_BUILDER_URL: https://downloads.openwrt.org/releases/21.02.7/targets/ramips/mt76x8/openwrt-imagebuilder-21.02.7-ramips-mt76x8.Linux-x86_64.tar.xz
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04 # Using 22.04 for better compatibility with 21.02 tools
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,15 +23,12 @@ jobs:
         run: |
           wget $IMAGE_BUILDER_URL
           mkdir ib
-          # This extracts the contents directly INTO the 'ib' folder, 
-          # skipping the long top-level directory name automatically.
           tar -xJf *.tar.xz -C ib --strip-components=1
 
       - name: Customize IP and Settings
         run: |
           cd ib
           mkdir -p files/etc/config
-          # This sets your 192.168.5.1 IP directly
           echo "config interface 'lan'
             option device 'br-lan'
             option proto 'static'
@@ -39,19 +36,14 @@ jobs:
             option netmask '255.255.255.0'
             option ip6assign '60'" > files/etc/config/network
 
-      - name: List All Profiles
-        run: |
-          cd ib
-          make info | grep "tplink"
-          
       - name: Build Firmware
         run: |
           cd ib
-          # We define exactly what we want. The "-" means "Remove this package"
-          make image PROFILE="tplink_tl-wr845n-v4" PACKAGES="luci luci-theme-bootstrap -ppp -ppp-mod-pppoe -ip6tables -odhcp6c -libiwinfo-lua" FILES="files"
+          # Using the confirmed profile and a 'Starvation Diet' package list
+          make image PROFILE="tplink_tl-wr841n-v14" PACKAGES="luci -ppp -ppp-mod-pppoe -ip6tables -odhcp6c -libiwinfo-lua" FILES="files"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: WR845N-OpenWrt-Firmware
+          name: WR845N-V4-Old-Stable-Firmware
           path: ib/bin/targets/ramips/mt76x8/*.bin
