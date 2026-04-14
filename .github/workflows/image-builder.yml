@@ -22,8 +22,10 @@ jobs:
       - name: Download & Extract Image Builder
         run: |
           wget $IMAGE_BUILDER_URL
-          tar -xJf *.tar.xz
-          mv openwrt-imagebuilder-* ib
+          mkdir ib
+          # This extracts the contents directly INTO the 'ib' folder, 
+          # skipping the long top-level directory name automatically.
+          tar -xJf *.tar.xz -C ib --strip-components=1
 
       - name: Customize IP and Settings
         run: |
