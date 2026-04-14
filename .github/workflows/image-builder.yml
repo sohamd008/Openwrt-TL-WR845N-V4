@@ -39,8 +39,11 @@ jobs:
       - name: Build Firmware
         run: |
           cd ib
-          # Using the confirmed profile and a 'Starvation Diet' package list
-          make image PROFILE="tplink_tl-wr841n-v14" PACKAGES="luci -ppp -ppp-mod-pppoe -ip6tables -odhcp6c -libiwinfo-lua" FILES="files"
+          # Using the absolute minimum packages to fit LuCI on a 4MB chip
+          make image PROFILE="tplink_tl-wr841n-v14" \
+          PACKAGES="uhttpd uhttpd-mod-ubus libiwinfo-lua luci-base luci-app-firewall luci-mod-admin-full luci-theme-bootstrap \
+          -ppp -ppp-mod-pppoe -ip6tables -odhcp6c -kmod-ipv6 -kmod-ip6tables -odhcpd-ipv6only -luci-proto-ppp -luci-proto-ipv6" \
+          FILES="files"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
