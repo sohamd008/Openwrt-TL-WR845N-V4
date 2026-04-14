@@ -36,7 +36,7 @@ jobs:
         run: |
           cd ib
           # Using the 19.07 profile name and keeping it lean
-          make image PROFILE="tl-wr841n-v14" \
+          make image PROFILE="tplink_tl-wr841n-v14" \
           PACKAGES="luci -ppp -ppp-mod-pppoe -ip6tables -odhcp6c -kmod-ipv6 -kmod-ip6tables"
 
       - name: Upload Artifact
